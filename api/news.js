@@ -14,68 +14,28 @@ async function fetchPage(group, page) {
   const $ = cheerio.load(html);
   const articles = [];
 
-  $('ul li a').each((i, el) => {
+  // 정확한 클래스 셀렉터 사용
+  $('a').each((i, el) => {
     const $el = $(el);
     const href = $el.attr('href') || '';
-    if (!href.match(/\/news\/\d+/)) return;
+    if (!href.match(/\/user\/news\/\d+/)) return;
+
+    const title = $el.find('.lin_title').text().trim();
+    if (!title || title.length < 5) return;
+
+    const preview = $el.find('.lin_cont').text().trim()
+      .replace(/\[데일리팜=[^\]]*\]/, '').trim().substring(0, 120);
+
+    const linData = $el.find('.lin_data div');
+    const date = $(linData[0]).text().trim();
+    const author = $(linData[1]).text().trim();
 
     const fullUrl = href.startsWith('http') ? href : `https://www.dailypharm.com${href}`;
-    const fullText = $el.text().trim();
-    const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const title = lines[0] || '';
-    if (title.length < 5) return;
 
-    const dateMatch = fullText.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
-    const authorMatch = fullText.match(/[가-힣]{2,4}\s*기자/);
-    const previewLine = lines.find(l =>
-      l.length > 15 &&
-      !l.match(/^\d{4}-/) &&
-      !l.match(/[가-힣]{2,4}\s*기자$/) &&
-      l !== title
-    ) || '';
-    const preview = previewLine.replace(/\[데일리팜=[^\]]*\]/, '').trim().substring(0, 100);
-
-    articles.push({
-      title,
-      url: fullUrl,
-      date: dateMatch ? dateMatch[0] : '',
-      author: authorMatch ? authorMatch[0] : '',
-      preview
-    });
+    articles.push({ title, url: fullUrl, date, author, preview });
   });
 
   return articles;
-}
-
-async function fetchArticleDetail(url) {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Referer': 'https://www.dailypharm.com/',
-      }
-    });
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    const dateMatch = html.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
-    const authorMatch = html.match(/[가-힣]{2,4}\s*기자/);
-    let preview = '';
-    $('p').each((i, el) => {
-      const text = $(el).text().trim();
-      if (text.length > 20 && !preview) {
-        preview = text.replace(/\[데일리팜=[^\]]*\]/, '').trim().substring(0, 100);
-      }
-    });
-
-    return {
-      date: dateMatch ? dateMatch[0] : '',
-      author: authorMatch ? authorMatch[0] : '데일리팜',
-      preview
-    };
-  } catch {
-    return { date: '', author: '데일리팜', preview: '' };
-  }
 }
 
 module.exports = async function handler(req, res) {
@@ -83,12 +43,9 @@ module.exports = async function handler(req, res) {
 
   const group = req.query.group || '종합';
   const limit = parseInt(req.query.limit) || 20;
-
-  // 필요한 페이지 수 계산 (페이지당 약 10개)
   const pagesNeeded = Math.ceil(limit / 10);
 
   try {
-    // 여러 페이지 병렬 요청
     const pagePromises = [];
     for (let p = 1; p <= pagesNeeded; p++) {
       pagePromises.push(fetchPage(group, p));
@@ -97,31 +54,17 @@ module.exports = async function handler(req, res) {
 
     // 중복 제거하며 합치기
     const seen = new Set();
-    const rawArticles = [];
+    const allArticles = [];
     for (const articles of pageResults) {
       for (const article of articles) {
         if (!seen.has(article.url)) {
           seen.add(article.url);
-          rawArticles.push(article);
+          allArticles.push(article);
         }
       }
     }
 
-    // limit 적용
-    const sliced = rawArticles.slice(0, limit);
-
-    // 날짜·기자 없는 기사만 상세 페이지 요청
-    await Promise.all(
-      sliced
-        .filter(a => !a.date || !a.author)
-        .map(async (article) => {
-          const detail = await fetchArticleDetail(article.url);
-          if (!article.date) article.date = detail.date;
-          if (!article.author) article.author = detail.author;
-          if (!article.preview) article.preview = detail.preview;
-        })
-    );
-
+    const sliced = allArticles.slice(0, limit);
     return res.status(200).json({ success: true, count: sliced.length, articles: sliced });
 
   } catch (err) {
