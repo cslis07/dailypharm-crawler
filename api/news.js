@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     });
     const html = await response.text();
     const $ = cheerio.load(html);
-    const articles = [];
+    const limit = parseInt(document.getElementById('limit').value);
+articles = (data.articles || []).slice(0, limit);
 
     $('ul li a').each((i, el) => {
       const $el = $(el);
