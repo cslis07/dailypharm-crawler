@@ -22,12 +22,14 @@
   <h1>📰 데일리팜 뉴스 크롤러</h1>
 
   <div class="controls">
-    <select id="group">
-      <option value="종합">종합</option>
-      <option value="정책·법률">정책·법률</option>
-      <option value="제약·바이오">제약·바이오</option>
-      <option value="약국·병원">약국·병원</option>
-    </select>
+  <select id="limit">
+    <option value="10">10개</option>
+    <option value="20" selected>20개</option>
+    <option value="30">30개</option>
+    <option value="50">50개</option>
+    <option value="999">전체</option>
+  </select>
+  <select id="group">
     <button onclick="loadNews()">🔍 기사 가져오기</button>
     <button onclick="downloadCSV()">⬇ CSV 저장</button>
   </div>
