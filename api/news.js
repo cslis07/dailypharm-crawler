@@ -59,7 +59,8 @@ module.exports = async function handler(req, res) {
     $('ul li a').each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
-      if (!href.includes('/news/') || href.includes('tip-off')) return;
+      // today-focus(동정·인사)와 숫자 ID 아닌 URL 제외
+if (!href.match(/\/news\/\d+/) ) return;
 
       const fullUrl = href.startsWith('http') ? href : `https://www.dailypharm.com${href}`;
       if (seen.has(fullUrl)) return;
