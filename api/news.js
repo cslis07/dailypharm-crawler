@@ -1,6 +1,7 @@
-import * as cheerio from 'cheerio';
+const cheerio = require('cheerio');
+const fetch = require('node-fetch');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const group = req.query.group || '종합';
@@ -29,6 +30,27 @@ export default async function handler(req, res) {
       const title = lines[0] || '';
       if (title.length < 5) return;
 
-      // 날짜: 텍스트에서 추출
       const dateMatch = fullText.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
-      const date = dateMatch ? dateMatch[0]
+      const date = dateMatch ? dateMatch[0] : '';
+
+      const authorMatch = fullText.match(/[가-힣]{2,4}\s*기자/);
+      const author = authorMatch ? authorMatch[0] : '';
+
+      const previewLine = lines.find(l =>
+        l.length > 15 &&
+        !l.match(/^\d{4}-/) &&
+        !l.match(/[가-힣]{2,4}\s*기자$/) &&
+        l !== title
+      ) || '';
+      const preview = previewLine.replace(/\[데일리팜=[^\]]*\]/, '').trim().substring(0, 100);
+
+      const fullUrl = href.startsWith('http') ? href : `https://www.dailypharm.com${href}`;
+      articles.push({ title, url: fullUrl, date, author, preview });
+    });
+
+    return res.status(200).json({ success: true, count: articles.length, articles });
+
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
