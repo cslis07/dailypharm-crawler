@@ -18,7 +18,7 @@ async function fetchArticleDetail(url) {
 
     // 기자
     const authorMatch = html.match(/[가-힣]{2,4}\s*기자/);
-    const author = authorMatch ? authorMatch[0] : '';
+    const author = authorMatch ? authorMatch[0] : '데일리팜';
 
     // 미리보기: 본문 첫 문장
     let preview = '';
@@ -100,7 +100,7 @@ module.exports = async function handler(req, res) {
         .map(async (article) => {
           const detail = await fetchArticleDetail(article.url);
           if (!article.date) article.date = detail.date;
-          if (!article.author) article.author = detail.author;
+          if (!article.author) article.author = detail.author || '데일리팜';
           if (!article.preview) article.preview = detail.preview;
         })
     );
