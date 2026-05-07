@@ -51,29 +51,49 @@
   <script>
     let articles = [];
 
-    async function loadNews() {
-      const group = document.getElementById('group').value;
-      document.getElementById('status').textContent = '불러오는 중...';
-      document.getElementById('tableBody').innerHTML = '';
+async function loadNews() {
+  const group = document.getElementById('group').value;
+  const limit = parseInt(document.getElementById('limit').value);
 
-      // ⚠️ 아래 URL을 본인 Vercel 주소로 바꾸세요
-      const API_URL = '';
+  document.getElementById('status').textContent = '불러오는 중...';
+  document.getElementById('tableBody').innerHTML = '';
 
-      const res = await fetch(`${API_URL}/api/news?group=${encodeURIComponent(group)}`);
-      const data = await res.json();
-      articles = data.articles || [];
+  try {
+    const res = await fetch(`/api/news?group=${encodeURIComponent(group)}`);
+    const data = await res.json();
 
-      document.getElementById('status').textContent = `총 ${articles.length}개 기사`;
-      document.getElementById('tableBody').innerHTML = articles.map((a, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td><a href="${a.url}" target="_blank">${a.title}</a></td>
-          <td style="white-space:nowrap;color:#666;font-size:12px">${a.date}</td>
-          <td style="white-space:nowrap">${a.author}</td>
-          <td style="color:#888;font-size:12px">${a.preview}</td>
-        </tr>
-      `).join('');
-    }
+    // 개수 제한 적용
+    articles = (data.articles || []).slice(0, limit);
+
+    document.getElementById('status').textContent = `총 ${articles.length}개 기사`;
+    document.getElementById('tableBody').innerHTML = articles.map((a, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><a href="${a.url}" target="_blank">${a.title}</a></td>
+        <td style="white-space:nowrap;color:#666;font-size:12px">${a.date || '-'}</td>
+        <td style="white-space:nowrap">${a.author || '-'}</td>
+        <td style="color:#888;font-size:12px">${a.preview || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    document.getElementById('status').textContent = '오류: ' + err.message;
+  }
+}
+
+function downloadCSV() {
+  if (!articles.length) return alert('먼저 기사를 불러오세요.');
+  const bom = '\uFEFF';
+  const header = ['No.', '제목', 'URL', '날짜', '기자', '미리보기'];
+  const rows = articles.map((a, i) =>
+    [i+1, a.title, a.url, a.date, a.author, a.preview]
+      .map(c => `"${String(c||'').replace(/"/g, '""')}"`).join(',')
+  );
+  const csv = bom + [header.join(','), ...rows].join('\n');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  link.download = 'dailypharm_news.csv';
+  link.click();
+}
 
     function downloadCSV() {
       if (!articles.length) return alert('먼저 기사를 불러오세요.');
