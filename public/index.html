@@ -59,7 +59,7 @@ async function loadNews() {
   document.getElementById('tableBody').innerHTML = '';
 
   try {
-    const res = await fetch(`/api/news?group=${encodeURIComponent(group)}`);
+    const res = await fetch(`/api/news?group=${encodeURIComponent(group)}&limit=${limit}`);
     const data = await res.json();
 
     // 개수 제한 적용
