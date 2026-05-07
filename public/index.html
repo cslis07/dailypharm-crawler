@@ -50,7 +50,7 @@
       document.getElementById('tableBody').innerHTML = '';
 
       // ⚠️ 아래 URL을 본인 Vercel 주소로 바꾸세요
-      const API_URL = 'https://여기에-vercel-주소.vercel.app';
+      const API_URL = '';
 
       const res = await fetch(`${API_URL}/api/news?group=${encodeURIComponent(group)}`);
       const data = await res.json();
