@@ -1,0 +1,8 @@
+{
+  "name": "dailypharm-crawler",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}

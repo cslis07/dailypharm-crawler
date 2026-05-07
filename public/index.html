@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>데일리팜 크롤러</title>
+  <style>
+    body { font-family: sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 22px; margin-bottom: 16px; }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    select, button { padding: 8px 16px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; }
+    button { background: #000; color: #fff; cursor: pointer; }
+    button:hover { opacity: 0.8; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    #status { font-size: 13px; color: #666; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>📰 데일리팜 뉴스 크롤러</h1>
+
+  <div class="controls">
+    <select id="group">
+      <option value="종합">종합</option>
+      <option value="정책·법률">정책·법률</option>
+      <option value="제약·바이오">제약·바이오</option>
+      <option value="약국·병원">약국·병원</option>
+    </select>
+    <button onclick="loadNews()">🔍 기사 가져오기</button>
+    <button onclick="downloadCSV()">⬇ CSV 저장</button>
+  </div>
+
+  <div id="status"></div>
+
+  <table>
+    <thead>
+      <tr><th>No.</th><th>제목</th><th>날짜</th><th>기자</th><th>미리보기</th></tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    let articles = [];
+
+    async function loadNews() {
+      const group = document.getElementById('group').value;
+      document.getElementById('status').textContent = '불러오는 중...';
+      document.getElementById('tableBody').innerHTML = '';
+
+      // ⚠️ 아래 URL을 본인 Vercel 주소로 바꾸세요
+      const API_URL = 'https://여기에-vercel-주소.vercel.app';
+
+      const res = await fetch(`${API_URL}/api/news?group=${encodeURIComponent(group)}`);
+      const data = await res.json();
+      articles = data.articles || [];
+
+      document.getElementById('status').textContent = `총 ${articles.length}개 기사`;
+      document.getElementById('tableBody').innerHTML = articles.map((a, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><a href="${a.url}" target="_blank">${a.title}</a></td>
+          <td style="white-space:nowrap;color:#666;font-size:12px">${a.date}</td>
+          <td style="white-space:nowrap">${a.author}</td>
+          <td style="color:#888;font-size:12px">${a.preview}</td>
+        </tr>
+      `).join('');
+    }
+
+    function downloadCSV() {
+      if (!articles.length) return alert('먼저 기사를 불러오세요.');
+      const bom = '\uFEFF';
+      const header = ['No.', '제목', 'URL', '날짜', '기자', '미리보기'];
+      const rows = articles.map((a, i) =>
+        [i+1, a.title, a.url, a.date, a.author, a.preview]
+          .map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')
+      );
+      const csv = bom + [header.join(','), ...rows].join('\n');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      link.download = 'dailypharm_news.csv';
+      link.click();
+    }
+  </script>
+</body>
+</html>
